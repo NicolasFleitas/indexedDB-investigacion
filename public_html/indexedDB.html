@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+            var indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+            //creamos la base de datos poniendo el nombre y la version
+            //Con esta línea de código, lo que conseguimos es que en la variable dataBase
+            // tengamos el “conector” abierto a nuestra base de datos.
+            var dataBase = null;
+
+            function startDB() {
+
+                dataBase = indexedDB.open("object", 1);
+
+                dataBase.onupgradeneeded = function (e) {
+
+                    active = dataBase.result;
+                    object = active.createObjectStore("people", {keyPath: 'id', autoIncrement: true});
+                    object.createIndex('by_name', 'name', {unique: false});
+                    object.createIndex('by_dni', 'dni', {unique: true});
+                };
+
+                dataBase.onsuccess = function (e) {
+                    alert('Base de datos cargada correctamente');
+                };
+
+                dataBase.onerror = function (e) {
+                    alert('Error cargando la base de datos');
+                };
+            }
+            // ****************************
+            // funcion al guardar
+            function add() {
+                var active = dataBase.result;
+                //agregar datos a nuestro almacen de objetos,
+                //recibiendo los parametros del (array de almacenes , modo de la transaccion )
+                //que puede ser readonly o readwrite
+
+                var data = active.transaction(["people"], "readwrite");
+                //Aunque ya tenemos la transacción iniciada, no podemos agregar el objeto sin más. 
+                //Hay que tener en cuenta que una transacción puede involucrar a varios almacenes
+                // de objetos, por lo que antes de nada deberemos indicar sobre qué almacén 
+                // vamos a trabajar… aunque la transacción sólo se haya iniciado sobre un almacén.
+
+//Para ello, tenemos el método objectStore asociado a la transacción:
+
+                var object = data.objectStore("people");//Como parámetro, recibe el nombre del almacén a utilizar.
+                /*El parámetro es el objeto a agregar. Hay que tener en cuenta
+                 los índices de nuestro almacén, para no equivocarnos con las propiedades mínimas del objeto.*/
+
+                /*En nuestro caso, las propiedades de nuestro objeto se van a alimentar de lo que el usuario introduce,
+                 por lo que el código sería:*/
+
+                var request = object.put({
+                    dni: document.querySelector("#dni").value,
+                    name: document.querySelector("#name").value,
+                    surname: document.querySelector("#surname").value
+                });
+                
+                //en caso que exista
+                request.onerror = function (e) {
+                    alert(request.error.name + '\n\n' + request.error.message);
+                };
+                
+                //controlar que todo se cumpla para terminar la transaccion
+                data.oncomplete = function (e) {
+                    document.querySelector("#dni").value = '';
+                    document.querySelector("#name").value = '';
+                    document.querySelector("#surname").value = '';
+                    alert('Objeto agregado correctamente');
+                    loadAll(); //para recuperar los datos, luego que se add corretamente y todo se cumple
+                };
+            }
+            
+            function loadAll() {
+                var active = dataBase.result; // lo primero es recuperar la conexion activa de nuestra base
+                //de datos object
+                
+                var data = active.transaction(["people"],"readonly"); // iniciamos la transaccion               
+                var object = data.objectStore("people"); //indicamos que almacen queremos utilizar en la transaccion
+                
+                var elements = []; // array para ir almacenando cada uno de los objetos recuperados
+                
+                // el siguiente paso es atacar el contenido para recuperar los datos
+                
+                /*
+                 Como vamos a recuperar la información en base a la clave primaria del almacén, 
+                 sólo debemos empezar a recorrer el almacén, puesto que éste ya nos devolverá 
+                 los objetos ordenados por su clave primaria.
+                 */
+                
+                object.openCursor().onsuccess = function (e) {
+
+                    var result = e.target.result;
+
+                    if (result === null) {
+                        return;
+                    }
+
+                    elements.push(result.value);
+                    result.continue();
+
+                };
+
+               data.oncomplete = function () {
+
+                    var outerHTML = '';
+
+                    for (var key in elements) {
+
+                        outerHTML += '\n\
+                        <tr>\n\
+                            <td>' + elements[key].dni + '</td>\n\
+                            <td>' + elements[key].name + '</td>\n\
+                            <td>\n\
+                                <button type="button" onclick="load(' + elements[key].id + ')">Details</button>\n\
+\n\ <button type="button" onclick="loadByDni(' + elements[key].dni + ')">Details DNI</button>\n\
+                            </td>\n\
+                        </tr>';
+
+                                        }
+
+                                        elements = [];
+                                        document.querySelector("#elementsList").innerHTML = outerHTML;
+                                    };
+                                }
+
+function load(id) {
+  var active = dataBase.result;
+  var data = active.transaction(["people"], "readonly");
+  var object = data.objectStore("people");
+  var request = object.get(parseInt(id));
+  request.onsuccess = function () {
+  var result = request.result;
+    if (result !== undefined) {
+      alert("ID: " + result.id + "\n\
+              DNI " + result.dni + "\n\
+               Name: " + result.name + "\n\
+               Surname: " + result.surname);
+     }
+   };
+}
+                                
+                                //Duplicamos la funcion load para loadByDni
+                                
+           function loadByDni(dni) {
+    var active = dataBase.result;
+    var data = active.transaction(["people"], "readonly");
+    var object = data.objectStore("people");
+    var index = object.index("by_dni");
+    var request = index.get(String(dni));
+
+    request.onsuccess = function () {
+        var result = request.result;
+
+        if (result !== undefined) {
+            alert("ID: " + result.id + "\n\
+                   DNI " + result.dni + "\n\
+                   Name: " + result.name + "\n\
+                   Surname: " + result.surname);
+        }
+    };
+}               
+
+/*-----ordenar por nombre (duplicado de loadAll*/
+
+
+function loadAllByName() {
+    var active = dataBase.result;
+    var data = active.transaction(["people"], "readonly");
+    var object = data.objectStore("people");
+    //necesitamos indicar el índice y realizar
+    //  la solicitud sobre la variable que incluye tanto 
+    //  el almacén como el índice a utilizar
+    
+    var index = object.index("by_name");
+
+    var elements = [];
+
+    index.openCursor().onsuccess = function (e) {
+
+        var result = e.target.result;
+
+        if (result === null) {
+            return;
+        }
+
+        elements.push(result.value);
+        result.continue();
+
+    };
+
+    data.oncomplete = function () {
+
+        var outerHTML = '';
+
+        for (var key in elements) {
+
+            outerHTML += '\n\
+            <tr>\n\
+                <td>' + elements[key].dni + '</td>\n\
+                <td>' + elements[key].name + '</td>\n\
+                <td>\n\
+                    <button type="button" onclick="load(' + elements[key].id + ')">Details</button>\n\
+                    <button type="button" onclick="loadByDni(' + elements[key].dni + ')">Details DNI</button>\n\
+                </td>\n\
+            </tr>';
+
+        }
+
+        elements = [];
+        document.querySelector("#elementsList").innerHTML = outerHTML;
+    };
+}
+
+
+</script>
+
+    </head>
+    <body onload="startDB()">
+        <div>Almacenamiento local con indexDB</div>
+        <div>
+            <input type="text" id="dni" placeholder="Introducir dni" />
+            <input type="text" id="name" placeholder="Introducir nombre" /> 
+            <input type="text" id="surname" placeholder="Introducir apellidos" />
+            <button type="button" onclick="add();">Guardar</button>
+        </div>
+        <hr>
+        <!-- Recuperar los datos parte 2-->
+        <div id="elements">
+            <table>
+                <caption>Persons</caption>
+                <thead>
+                    <tr>
+                        <th>DNI</th>
+                        <th>Name</th>
+                        <th> </th>
+                    </tr>
+                </thead>
+                <tbody id="elementsList">
+                    <tr>
+                        <td colspan="3">No hay elementos que mostrar</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <button type="button" onclick="loadAllByName();">Ordenar por nombre</button>
+            
+        </div>
+    </body>
+</html>
