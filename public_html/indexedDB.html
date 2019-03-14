@@ -24,7 +24,7 @@
                 };
 
                 dataBase.onsuccess = function (e) {
-                    alert('Base de datos cargada correctamente');
+                    //alert('Base de datos cargada correctamente');
                 };
 
                 dataBase.onerror = function (e) {
@@ -59,12 +59,12 @@
                     name: document.querySelector("#name").value,
                     surname: document.querySelector("#surname").value
                 });
-                
+
                 //en caso que exista
                 request.onerror = function (e) {
                     alert(request.error.name + '\n\n' + request.error.message);
                 };
-                
+
                 //controlar que todo se cumpla para terminar la transaccion
                 data.oncomplete = function (e) {
                     document.querySelector("#dni").value = '';
@@ -74,24 +74,24 @@
                     loadAll(); //para recuperar los datos, luego que se add corretamente y todo se cumple
                 };
             }
-            
+
             function loadAll() {
                 var active = dataBase.result; // lo primero es recuperar la conexion activa de nuestra base
                 //de datos object
-                
-                var data = active.transaction(["people"],"readonly"); // iniciamos la transaccion               
+
+                var data = active.transaction(["people"], "readonly"); // iniciamos la transaccion               
                 var object = data.objectStore("people"); //indicamos que almacen queremos utilizar en la transaccion
-                
+
                 var elements = []; // array para ir almacenando cada uno de los objetos recuperados
-                
+
                 // el siguiente paso es atacar el contenido para recuperar los datos
-                
+
                 /*
                  Como vamos a recuperar la información en base a la clave primaria del almacén, 
                  sólo debemos empezar a recorrer el almacén, puesto que éste ya nos devolverá 
                  los objetos ordenados por su clave primaria.
                  */
-                
+
                 object.openCursor().onsuccess = function (e) {
 
                     var result = e.target.result;
@@ -105,7 +105,7 @@
 
                 };
 
-               data.oncomplete = function () {
+                data.oncomplete = function () {
 
                     var outerHTML = '';
 
@@ -115,129 +115,143 @@
                         <tr>\n\
                             <td>' + elements[key].dni + '</td>\n\
                             <td>' + elements[key].name + '</td>\n\
+                         \n\<td>' + elements[key].surname + '</td>\n\
                             <td>\n\
                                 <button type="button" onclick="load(' + elements[key].id + ')">Details</button>\n\
 \n\ <button type="button" onclick="loadByDni(' + elements[key].dni + ')">Details DNI</button>\n\
                             </td>\n\
                         </tr>';
 
-                                        }
+                    }
 
-                                        elements = [];
-                                        document.querySelector("#elementsList").innerHTML = outerHTML;
-                                    };
-                                }
+                    elements = [];
+                    document.querySelector("#elementsList").innerHTML = outerHTML;
+                };
+            }
 
-function load(id) {
-  var active = dataBase.result;
-  var data = active.transaction(["people"], "readonly");
-  var object = data.objectStore("people");
-  var request = object.get(parseInt(id));
-  request.onsuccess = function () {
-  var result = request.result;
-    if (result !== undefined) {
-      alert("ID: " + result.id + "\n\
+            function load(id) {
+                var active = dataBase.result;
+                var data = active.transaction(["people"], "readonly");
+                var object = data.objectStore("people");
+                var request = object.get(parseInt(id));
+                request.onsuccess = function () {
+                    var result = request.result;
+                    if (result !== undefined) {
+                        alert("ID: " + result.id + "\n\
               DNI " + result.dni + "\n\
                Name: " + result.name + "\n\
                Surname: " + result.surname);
-     }
-   };
-}
-                                
-                                //Duplicamos la funcion load para loadByDni
-                                
-           function loadByDni(dni) {
-    var active = dataBase.result;
-    var data = active.transaction(["people"], "readonly");
-    var object = data.objectStore("people");
-    var index = object.index("by_dni");
-    var request = index.get(String(dni));
+                    }
+                };
+            }
 
-    request.onsuccess = function () {
-        var result = request.result;
+            //Duplicamos la funcion load para loadByDni
 
-        if (result !== undefined) {
-            alert("ID: " + result.id + "\n\
+            function loadByDni(dni) {
+                var active = dataBase.result;
+                var data = active.transaction(["people"], "readonly");
+                var object = data.objectStore("people");
+                var index = object.index("by_dni");
+                var request = index.get(String(dni));
+
+                request.onsuccess = function () {
+                    var result = request.result;
+
+                    if (result !== undefined) {
+                        alert("ID: " + result.id + "\n\
                    DNI " + result.dni + "\n\
                    Name: " + result.name + "\n\
                    Surname: " + result.surname);
-        }
-    };
-}               
+                    }
+                };
+            }
 
-/*-----ordenar por nombre (duplicado de loadAll*/
+            /*-----ordenar por nombre (duplicado de loadAll*/
 
 
-function loadAllByName() {
-    var active = dataBase.result;
-    var data = active.transaction(["people"], "readonly");
-    var object = data.objectStore("people");
-    //necesitamos indicar el índice y realizar
-    //  la solicitud sobre la variable que incluye tanto 
-    //  el almacén como el índice a utilizar
-    
-    var index = object.index("by_name");
+            function loadAllByName() {
+                var active = dataBase.result;
+                var data = active.transaction(["people"], "readonly");
+                var object = data.objectStore("people");
+                //necesitamos indicar el índice y realizar
+                //  la solicitud sobre la variable que incluye tanto 
+                //  el almacén como el índice a utilizar
 
-    var elements = [];
+                var index = object.index("by_name");
 
-    index.openCursor().onsuccess = function (e) {
+                var elements = [];
 
-        var result = e.target.result;
+                index.openCursor().onsuccess = function (e) {
 
-        if (result === null) {
-            return;
-        }
+                    var result = e.target.result;
 
-        elements.push(result.value);
-        result.continue();
+                    if (result === null) {
+                        return;
+                    }
 
-    };
+                    elements.push(result.value);
+                    result.continue();
 
-    data.oncomplete = function () {
+                };
 
-        var outerHTML = '';
+                data.oncomplete = function () {
 
-        for (var key in elements) {
+                    var outerHTML = '';
 
-            outerHTML += '\n\
+                    for (var key in elements) {
+
+                        outerHTML += '\n\
             <tr>\n\
                 <td>' + elements[key].dni + '</td>\n\
                 <td>' + elements[key].name + '</td>\n\
+                \n\<td>' + elements[key].surname + '</td>\n\
                 <td>\n\
                     <button type="button" onclick="load(' + elements[key].id + ')">Details</button>\n\
                     <button type="button" onclick="loadByDni(' + elements[key].dni + ')">Details DNI</button>\n\
                 </td>\n\
             </tr>';
 
-        }
+                    }
 
-        elements = [];
-        document.querySelector("#elementsList").innerHTML = outerHTML;
-    };
-}
+                    elements = [];
+                    document.querySelector("#elementsList").innerHTML = outerHTML;
+                };
+            }
 
 
-</script>
-
+        </script>
+        <style>
+            table {
+                width: 50%;
+                border: 1px #0088CC solid;
+                
+            }
+            table th{
+                padding: 1em;
+                border-bottom: 1px solid #0088CC;
+            }            
+            
+            
+        </style>
     </head>
     <body onload="startDB()">
         <div>Almacenamiento local con indexDB</div>
         <div>
-            <input type="text" id="dni" placeholder="Introducir dni" />
-            <input type="text" id="name" placeholder="Introducir nombre" /> 
-            <input type="text" id="surname" placeholder="Introducir apellidos" />
+            <input required type="text" id="dni" placeholder="Introducir dni" />
+            <input required type="text" id="name" placeholder="Introducir nombre" /> 
+            <input required type="text" id="surname" placeholder="Introducir apellidos" />
             <button type="button" onclick="add();">Guardar</button>
         </div>
         <hr>
         <!-- Recuperar los datos parte 2-->
         <div id="elements">
             <table>
-                <caption>Persons</caption>
+                <caption><h1>Personas</h1></caption>
                 <thead>
                     <tr>
                         <th>DNI</th>
                         <th>Name</th>
-                        <th> </th>
+                        <th>Apellido</th>                        
                     </tr>
                 </thead>
                 <tbody id="elementsList">
@@ -246,9 +260,9 @@ function loadAllByName() {
                     </tr>
                 </tbody>
             </table>
-            
+
             <button type="button" onclick="loadAllByName();">Ordenar por nombre</button>
-            
+
         </div>
     </body>
 </html>
