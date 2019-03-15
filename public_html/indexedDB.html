@@ -54,11 +54,11 @@
                 /*En nuestro caso, las propiedades de nuestro objeto se van a alimentar de lo que el usuario introduce,
                  por lo que el código sería:*/
 
-                var request = object.put({
-                    dni: document.querySelector("#dni").value,
-                    name: document.querySelector("#name").value,
-                    surname: document.querySelector("#surname").value
-                });
+                    var request = object.put({
+                        dni: document.querySelector("#dni").value,
+                        name: document.querySelector("#name").value,
+                        surname: document.querySelector("#surname").value
+                    });
 
                 //en caso que exista
                 request.onerror = function (e) {
@@ -138,7 +138,7 @@
                     var result = request.result;
                     if (result !== undefined) {
                         alert("ID: " + result.id + "\n\
-              DNI " + result.dni + "\n\
+               DNI: " + result.dni + "\n\
                Name: " + result.name + "\n\
                Surname: " + result.surname);
                     }
@@ -158,8 +158,8 @@
                     var result = request.result;
 
                     if (result !== undefined) {
-                        alert("ID: " + result.id + "\n\
-                   DNI " + result.dni + "\n\
+                        alert("ID: " + result.id +"\n\
+                   DNI: " + result.dni + "\n\
                    Name: " + result.name + "\n\
                    Surname: " + result.surname);
                     }
@@ -217,51 +217,148 @@
                     document.querySelector("#elementsList").innerHTML = outerHTML;
                 };
             }
+            
+            
+            
+       /*     
+function actualizar() { //METODO PROBLEMATICO
+  //var id= getParameterByName('dni');
+  var active = dataBase.result;
+  var data = active.transaction(["people"], "readwrite");
+  var object = data.objectStore("people");
+        
+         var request = object.put({
+                    //dni: document.querySelector("#dni").value,
+                    name: document.querySelector("#name").value,
+                    surname: document.querySelector("#surname").value
+                });
+            
+        request.onsuccess = function () {
+            alert('cargado');
+        };
+        request.onerror = function () {
+            alert('no cargado');
+        };      
+        
+}
+ 
+ */
 
-
+ function update()  {
+ var db = dataBase.result;
+ var objectStore = db.transaction(["people"], "readwrite").objectStore("people");
+var request = objectStore.get(1);
+request.onerror = function(event) {
+  alert("error en obtener la base de datos");
+};
+request.onsuccess = function(event) {
+             // Get the old value that we want to update
+             var data = request.result;
+             // update the value(s) in the object that you want to change
+             data.name = "fernando";
+             
+             // Put this updated object back into the database.
+             var requestUpdate = objectStore.put(data);
+             requestUpdate.onerror = function (event) {
+                 alert("no se modifico");
+             };
+             requestUpdate.onsuccess = function (event) {
+                 alert("modificado");
+             };
+         };
+     }
+     
+function eliminar() {
+  var db = dataBase.result;
+  var request = db.transaction(["people"], "readwrite")
+  .objectStore("people")
+  .delete(1); 
+  request.onsuccess = function(event) {
+  alert("borrado");
+  };
+}
+ 
+            
         </script>
         <style>
-            table {
-                width: 50%;
-                border: 1px #0088CC solid;
-                
-            }
-            table th{
-                padding: 1em;
-                border-bottom: 1px solid #0088CC;
-            }            
             
+            form#datosClientes {
+                display: table;
+                margin: auto;
+            }
+            
+            #elementsList tr td {
+                border: 1px solid #ddd;
+                padding: 8px;
+            }
+            
+            #datosClientes input {
+                display: block;
+                padding: 10px;
+                margin: 5px;                 
+            }
+            
+            #datosClientes button {
+                padding: 10px;
+                background: green;                
+                border: none;                
+                margin: 5px;    
+            }
+            .tclientes {
+                width: 50%;
+                margin: auto;
+            }
+            table {
+                width: 100%;
+            }
+            
+            
+            
+            div .btnOrdenarNombres {
+                padding: 12px;
+                outline: none;
+                background-color: #3333ff;                
+                display: block;
+                margin: auto;
+            }
             
         </style>
     </head>
     <body onload="startDB()">
-        <div>Almacenamiento local con indexDB</div>
-        <div>
-            <input required type="text" id="dni" placeholder="Introducir dni" />
-            <input required type="text" id="name" placeholder="Introducir nombre" /> 
-            <input required type="text" id="surname" placeholder="Introducir apellidos" />
+        <h1 style="text-align: center;">Almacenamiento local con IndexedDB</h1>
+        <form id="datosClientes">            
+            <input required="" type="text" id="dni" placeholder="Introducir C.I.Nº" />
+            <input required="" type="text" id="name" placeholder="Introducir Nombres" /> 
+            <input required="" type="text" id="surname" placeholder="Introducir Apellidos" />
             <button type="button" onclick="add();">Guardar</button>
-        </div>
+        </form>
         <hr>
-        <!-- Recuperar los datos parte 2-->
+        <!-- Recuperar los datos -->
         <div id="elements">
-            <table>
+            <table class="tclientes">
                 <caption><h1>Personas</h1></caption>
                 <thead>
                     <tr>
-                        <th>DNI</th>
-                        <th>Name</th>
+                        <th>CI</th>
+                        <th>Nombre</th>
                         <th>Apellido</th>                        
                     </tr>
                 </thead>
                 <tbody id="elementsList">
-                    <tr>
+                    <tr id="clientes">
                         <td colspan="3">No hay elementos que mostrar</td>
                     </tr>
                 </tbody>
             </table>
-
-            <button type="button" onclick="loadAllByName();">Ordenar por nombre</button>
+            <br>
+            <div>
+                <button class="btnOrdenarNombres" type="button" onclick="loadAllByName();">Ordenar por nombre</button>
+            </div>
+            
+            <div>
+                <button type="button" onclick="update();">Actualizar</button>
+                <button type="button" onclick="eliminar()();">Eliminar</button>
+            </div>            
 
         </div>
     </body>
